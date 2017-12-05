@@ -309,9 +309,13 @@ setMethod('createGeneModel', 'Trena',
               if(length(tfs) == 0)
                   return(data.frame())
 
-              solver <- EnsembleSolver(mtx, targetGene=targetGene, candidateRegulators=tfs, solverNames)
+              solver <- EnsembleSolver(mtx, targetGene=targetGene, candidateRegulators=tfs, solverNames,
+                                       geneCutoff=0.5)   # return 50% of the predicting tfs
               tbl.model <- run(solver)
-              tbl.tf.frequencies <- as.data.frame(table(tbl.regulatoryRegions$geneSymbol))
+                # collapse binding sites by focusing only on chrom/start/stop/geneSymbol
+              tbl.bindingSites <- unique(tbl.regulatoryRegions[, c("chrom", "start", "end", "geneSymbol")])
+              tbl.tf.frequencies <- as.data.frame(table(tbl.bindingSites$geneSymbol))
+                #tbl.tf.frequencies <- as.data.frame(table(tbl.regulatoryRegions$geneSymbol))
               colnames(tbl.tf.frequencies) <- c("gene", "bindingSites")
               tbl.model <- merge(tbl.model, tbl.tf.frequencies, by="gene")
               tbl.model <- tbl.model[order(tbl.model$pcaMax, decreasing=TRUE),]

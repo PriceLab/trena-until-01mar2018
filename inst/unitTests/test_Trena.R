@@ -173,7 +173,6 @@ openPostgresConnections <- function()
 #----------------------------------------------------------------------------------------------------
 test_createGeneModel <- function()
 {
-
     printf("--- test_createGeneModel")
 
     targetGene <- "MEF2C"
@@ -360,5 +359,54 @@ test_assessSnp_allTypesWithDeltas <- function()
     checkEqualsNumeric(max(tbl.assay$delta),  0.22, tol=1e-2)
 
 } # test_assessSnp_allTypesWithDeltas
+#----------------------------------------------------------------------------------------------------
+# using footprints (979 rows × 10 columns) from all 4 skin databases (hint/wellington, seed=16/20) and the
+# large skinProtectedAndExposed matrix, and chr17:50,201,013-50,205,194, to build a model
+# for col1a1, this error results when run from the trenaGelinas jupyter notebook:
+#    error in if (Cmax < eps * 100) { : missing value where TRUE/FALSE needed
+# reproduce, explore, fix this here.
+# dimensions of footprint
+reproduce_cmaxError <- function()
+{
+   if(!exists("mtx.pAndE"))
+      load("~/github/dockerizedMicroservices/trenaGelinas/trena/data/mtx.protectedAndExposed.RData",
+           envir=.GlobalEnv)
+
+   trena <- Trena("hg38")
+   source.1 <- "postgres://bddsrds.globusgenomics.org/skin_wellington_16"
+   source.2 <- "postgres://bddsrds.globusgenomics.org/skin_wellington_20"
+   source.3 <- "postgres://bddsrds.globusgenomics.org/skin_hint_16"
+   source.4 <- "postgres://bddsrds.globusgenomics.org/skin_hint_20"
+   sources <- c(source.1, source.2, source.3, source.4)
+   names(sources) <- c("well_16", "well_20", "hint_16", "hint_20")
+
+   targetGene <- "COL1A1"
+   tss <- 50201632
+   roi <- "chr17:50,201,013-50,205,194"
+   cls <- parseChromLocString(roi)   # a trena function
+
+   x <- getRegulatoryChromosomalRegions(trena, cls$chrom, cls$start, cls$end, sources, targetGene, tss)
+   names(x) <- names(sources)
+
+      # append a column to each non-empty table, giving it the source name
+   x2 <- lapply(names(x), function(name) {tbl <-x[[name]]; if(nrow(tbl) >0) tbl$db <- name; return(tbl)})
+   tbl.reg <- do.call(rbind, x2)
+   rownames(tbl.reg) <- NULL
+
+      # be strict for now: just the 2016 jaspar human motifs
+   tbl.reg <- unique(tbl.reg[grep("Hsapiens-jaspar2016", tbl.reg$motifName, ignore.case=TRUE),])
+   tbl.reg <- tbl.reg[order(tbl.reg$motifStart),]
+   tbl.reg$fpName <- paste(tbl.reg$motifName, tbl.reg$db, sep="_")
+
+   solver.names <- c("lasso", "lassopv", "pearson", "randomForest", "ridge", "spearman")
+   #solver.names <- c("lasso", "pearson", "randomForest", "ridge", "spearman")
+   colnames(tbl.reg)[c(2,3)] <- c("start", "end")
+
+   tbl.reg.tfs <- associateTranscriptionFactors(MotifDb, tbl.reg, source="MotifDb", expand.rows=FALSE)
+   options(error=recover)
+   tbl.geneModel <- createGeneModel(trena, targetGene, solver.names, tbl.reg.tfs, mtx)
+   tbl.geneModel <- tbl.geneModel[order(tbl.geneModel$rfScore, decreasing=TRUE),]
+
+} # reproduce_cmaxError
 #----------------------------------------------------------------------------------------------------
 if(!interactive()) runTests()
