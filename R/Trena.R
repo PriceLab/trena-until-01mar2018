@@ -245,11 +245,13 @@ setMethod('getRegulatoryChromosomalRegions', 'Trena',
 
 
               for(source in regulatoryRegionSources){
+                  printf("Trena.R, getRegulatoryChromosomalRegions, about to browse");
                   source.count <- source.count + 1
                   printf("calling footprintFilter with source = '%s', span: %d", source, 1 + chromEnd - chromStart);
                   tbl.fp <- .callFootprintFilter(obj, source, chromosome, chromStart, chromEnd, targetGene, targetGeneTSS)
                   if(combine)
                       tbl.combined <- rbind(tbl.combined, tbl.fp)
+                  printf("   footprints found: %d", nrow(tbl.fp))
                   result[[source.count]] <- tbl.fp
               } # for source
               names(result) <- all.source.names
