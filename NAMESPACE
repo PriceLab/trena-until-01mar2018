@@ -31,7 +31,8 @@ export(
     show,
     parseChromLocString,
     parseDatabaseUri,
-    getAvailableSolvers
+    getAvailableSolvers,
+    getEncodeDHSRegions
 )
 
 exportMethods(

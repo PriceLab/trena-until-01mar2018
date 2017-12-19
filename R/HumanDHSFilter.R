@@ -64,7 +64,7 @@ setGeneric("getRegulatoryRegions", signature="obj",
 #' genomeName <- "hg38"
 #' db.address <- system.file(package="trena", "extdata")
 #' genome.db.uri    <- paste("sqlite:/", db.address, "vrk2.neighborhood.hg38.gtfAnnotation.db",  sep = "/")
-#' 
+#'
 #' # Grab regions for VRK2 using shoulder size of 1000
 #' trena <- Trena(genomeName)
 #' tbl.regions <- getProximalPromoter(trena, "VRK2", 1000, 1000)
@@ -77,11 +77,11 @@ HumanDHSFilter <- function(genomeName,
                            encodeTableName="wgEncodeRegDnaseClustered",
                            pwmMatchPercentageThreshold,
                            geneInfoDatabase.uri,
-                           regions,                           
+                           regions,
                            variants=NA_character_,
                            pfms,
                            quiet=TRUE)
-{   
+{
     if(genomeName == "hg38"){
         # library(BSgenome.Hsapiens.UCSC.hg38) ## Remove the library reference
         reference.genome <- BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
@@ -93,7 +93,7 @@ HumanDHSFilter <- function(genomeName,
     else {
         stop(sprintf("HumanDHSFilter genome.name not in hg19, hg38: '%s'", genomeName))
     }
-    
+
     .HumanDHSFilter(CandidateFilter(quiet = quiet),
                     genomeName=genomeName,
                     pwmMatchPercentageThreshold=pwmMatchPercentageThreshold,
@@ -104,7 +104,7 @@ HumanDHSFilter <- function(genomeName,
                     variants=variants,
                     pfms=pfms,
                     quiet=quiet)
-    
+
 } # HumanDHSFilter, the constructor
 #----------------------------------------------------------------------------------------------------
 #' Get Encode regulatory tables using a human DHS filter
@@ -138,7 +138,7 @@ HumanDHSFilter <- function(genomeName,
 #' hd.filter <- HumanDHSFilter(genomeName, pwmMatchPercentageThreshold = 85,
 #' geneInfoDatabase.uri = genome.db.uri, regions = tbl.regions, pfms = jaspar.human)
 #'
-#' getEncodeRegulatoryTableNames(hd.filter) 
+#' getEncodeRegulatoryTableNames(hd.filter)
 
 setMethod("getEncodeRegulatoryTableNames", "HumanDHSFilter",
 
@@ -241,32 +241,32 @@ setMethod("show", "HumanDHSFilter",
 setMethod("getCandidates", "HumanDHSFilter",
 
           function(obj){
-              
+
               tbl.regions <- obj@regions
 
               if(!obj@quiet){
                   printf("HumanDHSFilter::getCandidates, from these regions:");
                   print(tbl.regions)
               }
-              
+
               tbl.dhs <- data.frame()
-              
+
               if(!obj@quiet){
                   printf("HumanDHSFilter::getCandidates, getRegulatoryRegions for %d regions", nrow(tbl.regions))
                   print(tbl.regions)
               }
-              
+
               for(r in 1:nrow(tbl.regions)){
                   tbl.new <- getRegulatoryRegions(obj, obj@encodeTableName, tbl.regions$chrom[r], tbl.regions$start[r], tbl.regions$end[r])
                   tbl.dhs <- rbind(tbl.dhs, tbl.new)
               }
               if(!obj@quiet)
                   printf("found %d DHS regions in %d requested regions", nrow(tbl.dhs), nrow(tbl.regions))
-              
+
               if(nrow(tbl.dhs) == 0){
                   return(tbl.dhs)
               }
-              
+
               colnames(tbl.dhs) <- c("chrom", "start", "end", "count", "score")
               jaspar.human.pfms <- as.list(query(query(MotifDb, "hsapiens"), "jaspar2016"))
               mm <- MotifMatcher(genomeName=obj@genomeName, pfms=jaspar.human.pfms, obj@quiet)
@@ -275,7 +275,7 @@ setMethod("getCandidates", "HumanDHSFilter",
                                                     variants=obj@variants)
               if(!obj@quiet)
                   printf(" and %d motifs", nrow(tbl))
-              
+
               preferred.colnames <- c("motifName", "chrom", "motifStart", "motifEnd", "strand", "motifScore", "motifRelativeScore",
                                       "match", "regulatoryRegionStart", "regualtoryRegionEnd", "regulatorySequence", "variant")
               colnames(tbl) <- preferred.colnames
@@ -334,39 +334,39 @@ setMethod("getCandidates", "HumanDHSFilter",
 #' }
 
 setMethod("getRegulatoryRegions", "HumanDHSFilter",
-          
+
           function(obj, encode.table.name, chromosome, start, end, score.threshold=0) {
-              
+
               driver <- RMySQL::MySQL()
               host <- "genome-mysql.cse.ucsc.edu"
               user <- "genome"
               dbname <- obj@genomeName
-              
+
               if(!obj@quiet)
                   printf("connecting to %s/%s/%s as %s", host, dbname, encode.table.name,  user);
-              
+
               db <- dbConnect(driver, user = user, host = host, dbname = dbname)
-              
+
               main.clause <- sprintf("select * from %s where", encode.table.name);
-              
+
               # Pull out the regions corresponding to the region in ENCODE
               query <- paste(main.clause,
                              sprintf("chrom = '%s'", chromosome),
                              sprintf("and chromStart >= %d", start),
                              sprintf("and chromEnd <= %d", end),
                              collapse = " ")
-              
+
               if(!obj@quiet)
                   printf("query: %s", query)
-              
+
               # handle the usual case first: a start:end region many times larger than a typical DHS region
               suppressWarnings(  # MySQL returns unsigned integers.  hide these unproblematic conversion warnings
                   tbl.regions <- dbGetQuery(db, query)
               )
-              
+
               if(!obj@quiet)
                   printf("%d DHS regions reported in %d bases, start:end unmodified", nrow(tbl.regions), 1 + end - start)
-              
+
               # if no hits, then perhaps a very small region is requested, one which falls entirely within a DHS region
               if(nrow(tbl.regions) == 0) {
                   extension <- 10000
@@ -402,17 +402,98 @@ setMethod("getRegulatoryRegions", "HumanDHSFilter",
                       } # one or more region from the extended query intersects with the requested start:end.
                   } # small region query, within DHS region
               } # small region, extension search
-              
+
               lapply(dbListConnections(driver), dbDisconnect)
-              
+
               tbl.regions$chrom <- as.character(tbl.regions$chrom)
-              
+
               # the ucsc database call the  itemCount columns "name".  fix that
               if("name" %in% colnames(tbl.regions)){
                   colnames(tbl.regions)[match("name", colnames(tbl.regions))] <- "count"
               }
-              
+
               invisible(tbl.regions[, c("chrom", "chromStart", "chromEnd",  "count", "score")])
-              
+
           }) # getRegulatoryRegions
 #----------------------------------------------------------------------------------------------------
+getEncodeDHSRegions <- function(genomeName, encode.table.name, chromosome, start, end, score.threshold=0, quiet=TRUE)
+{
+   driver <- RMySQL::MySQL()
+   host <- "genome-mysql.cse.ucsc.edu"
+   user <- "genome"
+   dbname <- genomeName
+
+   if(!quiet)
+      printf("connecting to %s/%s/%s as %s", host, dbname, encode.table.name,  user);
+
+   db <- dbConnect(driver, user = user, host = host, dbname = dbname)
+
+   main.clause <- sprintf("select * from %s where", encode.table.name);
+
+   # Pull out the regions corresponding to the region in ENCODE
+   query <- paste(main.clause,
+                  sprintf("chrom = '%s'", chromosome),
+                  sprintf("and chromStart >= %d", start),
+                  sprintf("and chromEnd <= %d", end),
+                  collapse = " ")
+
+   if(!quiet)
+      printf("query: %s", query)
+
+   # handle the usual case first: a start:end region many times larger than a typical DHS region
+   suppressWarnings(  # MySQL returns unsigned integers.  hide these unproblematic conversion warnings
+      tbl.regions <- dbGetQuery(db, query)
+      )
+
+   if(!quiet)
+      printf("%d DHS regions reported in %d bases, start:end unmodified", nrow(tbl.regions), 1 + end - start)
+
+   # if no hits, then perhaps a very small region is requested, one which falls entirely within a DHS region
+   if(nrow(tbl.regions) == 0) {
+      extension <- 10000
+      if(!quiet)
+         printf("possible that start:end (%d) is small relative to DHS regions, extend by %d", (1 + end - start),
+                extension);
+      query <- paste(main.clause,
+                     sprintf("chrom = '%s'", chromosome),
+                     sprintf("and chromStart >= %d", start - extension),
+                     sprintf("and chromEnd   <= %d", end + extension),
+                     collapse = " ")
+      if(!quiet)
+         printf("query with extension: %s", query)
+      suppressWarnings(  # MySQL returns unsigned integers.  hide these unproblematic conversion warnings
+         tbl.regionsExtended <- dbGetQuery(db, query)
+      )
+      if(!quiet) printf("query with extended region, %d rows", nrow(tbl.regionsExtended))
+      if(nrow(tbl.regionsExtended) > 0) { # now find just the intersection of DHS and requested region
+         if(!quiet)
+            printf("tbl.regionsExtended: %d rows, now have intersection", nrow(tbl.regionsExtended));
+         gr.regions <- with(tbl.regionsExtended,
+                            GRanges(seqnames=chromosome,
+                                    IRanges::IRanges(chromStart, chromEnd)))
+         gr.target <- GRanges(seqnames=chromosome, IRanges::IRanges(start, end))
+            # use range to collapse any multiple intersections down to that of the original target
+         gr.intersect <- GenomicRanges::intersect(gr.target, gr.regions, ignore.strand=TRUE)
+         if(!quiet) printf("GenomicRanges intersections of extended region with original target: %d", length(gr.intersect))
+         if(length(gr.intersect) >= 1){
+            tbl.ov <- as.data.frame(findOverlaps(gr.intersect, gr.regions, type="any"))
+            tbl.regions <- cbind(as.data.frame(gr.intersect[tbl.ov$queryHits]),
+                                 tbl.regionsExtended[tbl.ov$subjectHits, c("name", "score")])
+            colnames(tbl.regions) <- c("chrom", "chromStart", "chromEnd", "width", "strand", "name", "score")
+         } # one or more region from the extended query intersects with the requested start:end.
+      } # small region query, within DHS region
+   } # small region, extension search
+
+   lapply(dbListConnections(driver), dbDisconnect)
+
+   tbl.regions$chrom <- as.character(tbl.regions$chrom)
+
+      # the ucsc databases call the itemCount columns "name".  fix that
+   if("name" %in% colnames(tbl.regions)){
+      colnames(tbl.regions)[match("name", colnames(tbl.regions))] <- "count"
+      }
+
+   invisible(tbl.regions[, c("chrom", "chromStart", "chromEnd",  "count", "score")])
+
+} # getEncodeDHSRegions
+#------------------------------------------------------------------------------------------------------------------------

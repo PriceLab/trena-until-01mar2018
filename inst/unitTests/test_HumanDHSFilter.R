@@ -401,5 +401,22 @@ test_getCandidates.vrk2.rs13384219.variant <- function()
 
 } # test_getCandidates.vrk2.rs13384219.variant
 #------------------------------------------------------------------------------------------------------------------------
+test_get.mef2c.regions <- function()
+{
+    printf("--- test_get.mef2c.regions")
+    chrom <- "chr5"
+    start <- 88879533
+    end <- 88885740
+
+    start <- 88687204
+    end <- 88908480
+
+    tbl.dhs <- getEncodeDHSRegions("hg38", "wgEncodeRegDnaseClustered", chrom, start, end, quiet=FALSE)
+    checkTrue(nrow(tbl.dhs) > 200)
+    checkEquals(colnames(tbl.dhs), c("chrom", "chromStart", "chromEnd", "count", "score"))
+    tbl.dhs$width <- 1 + tbl.dhs$chromEnd - tbl.dhs$chromStart
+
+} # test_get.mef2c.regions
+#------------------------------------------------------------------------------------------------------------------------
 if(!interactive())
    runTests()
