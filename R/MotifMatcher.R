@@ -70,17 +70,19 @@ MotifMatcher <- function(genomeName,
     stopifnot(is.list(pfms))
 
     if(genomeName == "hg38"){
-        # library(BSgenome.Hsapiens.UCSC.hg38) ## Remove the library reference
         reference.genome <- BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
     }
 
     else if(genomeName == "hg19"){
-        # library(BSgenome.Hsapiens.UCSC.hg19) ## Remove the library reference
         reference.genome <- BSgenome.Hsapiens.UCSC.hg19::BSgenome.Hsapiens.UCSC.hg19
     }
 
     else if(genomeName == "mm10"){
         reference.genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
+    }
+
+    else if(genomeName == "tair10"){
+        reference.genome <- BSgenome.Athaliana.TAIR.TAIR9
     }
 
     else {
@@ -110,7 +112,7 @@ MotifMatcher <- function(genomeName,
 setMethod("show", "MotifMatcher",
 
           function(object){
-              s <- sprintf("MotifMatcher for genome %s", object@genome)
+              s <- sprintf("MotifMatcher for genome %s", object@genome@pkgname)
               cat(s, sep="\n")
           })
 #----------------------------------------------------------------------------------------------------
