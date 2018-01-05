@@ -187,8 +187,16 @@ test_createGeneModel <- function()
     tbl.region <- data.frame(chrom="chr5", start=tss-100, end=tss+500, stringsAsFactors=FALSE)
     tbl.motifs <- findMatchesByChromosomalRegion(motifMatcher, tbl.region, pwmMatchMinimumAsPercentage=92)
     tbl.motifs.tfs <- associateTranscriptionFactors(MotifDb, tbl.motifs, source="MotifDb", expand.rows=FALSE)
+    fixer <- grep("motifStart", colnames(tbl.motifs.tfs))
+    if(length(fixer) == 1)
+       colnames(tbl.motifs.tfs)[fixer] <- "start"
+    fixer <- grep("motifEnd", colnames(tbl.motifs.tfs))
+    if(length(fixer) == 1)
+       colnames(tbl.motifs.tfs)[fixer] <- "end"
+
     solver.names <- c("lasso", "lassopv", "pearson", "randomForest", "ridge", "spearman")
     trena <- Trena("hg38")
+
     tbl.geneModel <- createGeneModel(trena, targetGene, solver.names, tbl.motifs.tfs, mtx)
 
     checkTrue(is.data.frame(tbl.geneModel))
