@@ -1,7 +1,7 @@
 # TReNA
  Fit transcriptional regulatory networks using gene expression, priors, machine learning
 
-## Direct queries to the footprint databases [here](https://github.com/PriceLab/trena/wiki/Getting-Started-with-the-Footprint-Databases)
+### Direct queries to the footprint databases explained [here](https://github.com/PriceLab/trena/wiki/Getting-Started-with-the-Footprint-Databases)
 
 ## Getting Started 
 
