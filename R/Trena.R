@@ -58,7 +58,7 @@ genome.db.uri <- "postgres://bddsrds.globusgenomics.org/hg38"   # has gtf and mo
 
 Trena = function(genomeName, quiet=TRUE)
 {
-    stopifnot(genomeName %in% c("hg38", "mm10"))
+    stopifnot(genomeName %in% c("hg38", "mm10", "tair10"))
 
     obj <- .Trena(genomeName=genomeName, quiet=quiet)
 

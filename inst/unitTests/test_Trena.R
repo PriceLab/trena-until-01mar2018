@@ -277,8 +277,6 @@ test_getProximalPromoterMouse <- function(){
 
 } # test_getProximalPromoterMouse
 #----------------------------------------------------------------------------------------------------
-# Unit tests and such
-
 test_assessSnp <- function()
 {
     printf("--- test_assessSnp")

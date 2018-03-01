@@ -10,6 +10,8 @@ runTests <- function()
 {
    test_basicConstructor()
    test_getSequence()
+   test_matchAtTwoLevels()
+
    test_.matchPwmForwardAndReverse()
    test_bugInStartEndOfMinusStrandHits()
 
@@ -169,6 +171,26 @@ test_getSequence <- function(indirect=FALSE)
     invisible(tbl.regions$seq)
 
 } # test_getSequence
+#----------------------------------------------------------------------------------------------------
+test_matchAtSuccessiveLevels <- function()
+{
+   printf("--- test_matchAtSuccessiveLevels")
+
+   pfms <- as.list(query(query(MotifDb, "jaspar2018"), "hsapiens"))
+   checkTrue(length(pfms) > 500)
+   mm <- MotifMatcher(genomeName="hg38", pfms=pfms)
+
+   tbl.roi <- data.frame(chrom="chr5", start=88904280, end=88905680)
+   tbl.motifs.100 <- findMatchesByChromosomalRegion(mm, tbl.roi, pwmMatchMinimumAsPercentage=100)
+
+   tbl.motifs.99 <- findMatchesByChromosomalRegion(mm, tbl.roi, pwmMatchMinimumAsPercentage=99)
+   checkTrue(all(tbl.motifs.100$motifName %in% tbl.motifs.99$motifName))
+   tbl.motifs.95 <- findMatchesByChromosomalRegion(mm, tbl.roi, pwmMatchMinimumAsPercentage=95)
+   checkTrue(all(tbl.motifs.100$motifName %in% tbl.motifs.95$motifName))
+
+   checkEquals(unlist(lapply(list(tbl.motifs.100, tbl.motifs.99, tbl.motifs.95), nrow)), c(18, 31, 97))
+
+} # test_matchAtSuccessiveLevels
 #----------------------------------------------------------------------------------------------------
 test_.parseVariantString <- function()
 {
